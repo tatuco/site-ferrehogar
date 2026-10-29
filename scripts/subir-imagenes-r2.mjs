@@ -18,7 +18,8 @@
  *   R2_BUCKET
  *   R2_PUBLIC_BASE_URL
  *
- * Opcionales: R2_PREFIX, DRY_RUN, LIMIT, R2_CONCURRENCY, IMAGENES_R2_PATH, CATALOG_PATH.
+ * Opcionales: R2_PREFIX, DRY_RUN, LIMIT, R2_CONCURRENCY, IMAGENES_R2_PATH, CATALOG_PATH,
+ * SOLO_NUEVAS, VERIFICAR.
  */
 
 import crypto from "node:crypto";
@@ -96,16 +97,37 @@ function sleep(ms) {
 
 function help() {
   console.log(`Uso:
-  node scripts/subir-imagenes-r2.mjs [--dry-run] [--limit N]
+  node scripts/subir-imagenes-r2.mjs [--verificar | --solo-nuevas] [--dry-run] [--limit N]
 
-Lee el catálogo, sube cada JPG referenciado a R2 y escribe el mapa id → URL.
+Lee el catálogo, sube cada imagen referenciada a R2 y escribe el mapa id → URL.
 
-  --dry-run   Arma el JSON de enlaces sin llamar a R2.
-  --limit N   Procesa solo las primeras N imágenes.
+  --verificar     Consulta R2 y vuelve a subir la imagen si el tamaño cambió.
+                  Es el comportamiento por defecto.
+  --solo-nuevas   No consulta los id que ya están en el JSON de salida.
+                  Solo sube los que faltan en ese mapa.
+  --dry-run       Arma el JSON de enlaces sin llamar a R2.
+  --limit N       Procesa solo las primeras N imágenes del modo elegido.
+
+--verificar y --solo-nuevas no se usan juntos.
 
 Variables: CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
 R2_BUCKET y R2_PUBLIC_BASE_URL. R2_PREFIX es la carpeta dentro del bucket.
 `);
+}
+
+function readMode(args) {
+  const soloNuevasFlag = flag(args, "solo-nuevas");
+  const verificarFlag = flag(args, "verificar");
+  if (soloNuevasFlag && verificarFlag) {
+    throw new Error("Usa solo uno: --solo-nuevas o --verificar.");
+  }
+  if (soloNuevasFlag) return "nuevas";
+  if (verificarFlag) return "verificar";
+
+  const envSolo = bool(process.env.SOLO_NUEVAS, false);
+  const envVerificar = bool(process.env.VERIFICAR, false);
+  if (envSolo && envVerificar) throw new Error("Usa solo uno: SOLO_NUEVAS o VERIFICAR.");
+  return envSolo ? "nuevas" : "verificar";
 }
 
 function readConfig(args) {
@@ -113,10 +135,12 @@ function readConfig(args) {
   const limit = integer(argValue(args, "limit") ?? process.env.LIMIT, 0);
   const concurrency = Math.min(16, Math.max(1, integer(process.env.R2_CONCURRENCY, 6)));
   const publicBaseUrl = String(process.env.R2_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
+  const mode = readMode(args);
   const cfg = {
     dryRun,
     limit,
     concurrency,
+    soloNuevas: mode === "nuevas",
     accountId: process.env.CLOUDFLARE_ACCOUNT_ID || "",
     accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
@@ -273,7 +297,18 @@ function collectImages(cfg) {
       file: imageFile(cfg.catalogPath, relative),
     });
   }
-  return cfg.limit > 0 ? images.slice(0, cfg.limit) : images;
+  return images;
+}
+
+function selectImages(cfg, images, known) {
+  const pending = cfg.soloNuevas
+    ? images.filter((item) => !Object.hasOwn(known, item.id))
+    : images;
+  const queue = cfg.limit > 0 ? pending.slice(0, cfg.limit) : pending;
+  return {
+    queue,
+    omitidasMapa: images.length - pending.length,
+  };
 }
 
 function readExisting(file, publicBaseUrl) {
@@ -345,10 +380,16 @@ async function main() {
 
   loadEnv(path.join(ROOT, ".env"));
   const cfg = readConfig(args);
-  const images = collectImages(cfg);
-  if (!images.length) throw new Error("El catálogo no tiene productos con imagen.");
+  const catalogImages = collectImages(cfg);
+  if (!catalogImages.length) throw new Error("El catálogo no tiene productos con imagen.");
 
   const imagenes = readExisting(cfg.outputPath, cfg.publicBaseUrl);
+  const { queue, omitidasMapa } = selectImages(cfg, catalogImages, imagenes);
+  if (!queue.length) {
+    console.log(`Nada nuevo. El mapa ya tiene ${Object.keys(imagenes).length} enlaces.`);
+    return;
+  }
+
   const stats = { subidas: 0, existentes: 0, simuladas: 0, omitidas: 0, errores: 0 };
   let done = 0;
   let writeChain = Promise.resolve();
@@ -359,11 +400,13 @@ async function main() {
     return task;
   }
 
+  const mode = cfg.soloNuevas ? "solo nuevas" : "verificación";
   console.log(
-    `${cfg.dryRun ? "Simulación" : "Subida"}: ${images.length} imágenes hacia ${cfg.bucket}.`,
+    `${cfg.dryRun ? "Simulación" : "Subida"} (${mode}): ${queue.length} imágenes hacia ${cfg.bucket}.`,
   );
+  if (cfg.soloNuevas) console.log(`Omitidas por el mapa: ${omitidasMapa}.`);
 
-  await pool(images, cfg.dryRun ? 1 : cfg.concurrency, async (item) => {
+  await pool(queue, cfg.dryRun ? 1 : cfg.concurrency, async (item) => {
     if (!fs.existsSync(item.file)) {
       stats.omitidas += 1;
       console.log(`Sin archivo local: ${item.key}`);
@@ -381,10 +424,10 @@ async function main() {
     }
 
     done += 1;
-    if (done % 25 === 0 || done === images.length) await persist();
-    if (done % 50 === 0 || done === images.length) {
+    if (done % 25 === 0 || done === queue.length) await persist();
+    if (done % 50 === 0 || done === queue.length) {
       console.log(
-        `Progreso ${done}/${images.length}: subidas ${stats.subidas}, existentes ${stats.existentes}, simuladas ${stats.simuladas}, omitidas ${stats.omitidas}, errores ${stats.errores}.`,
+        `Progreso ${done}/${queue.length}: subidas ${stats.subidas}, existentes ${stats.existentes}, simuladas ${stats.simuladas}, omitidas ${stats.omitidas}, errores ${stats.errores}.`,
       );
     }
   });

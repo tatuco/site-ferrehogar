@@ -9,6 +9,7 @@
     "subir-catalogo:dry": "node scripts/subir-catalogo-meta.mjs --dry-run",
     "subir-imagenes": "node scripts/subir-imagenes-r2.mjs",
     "subir-imagenes:dry": "node scripts/subir-imagenes-r2.mjs --dry-run",
-    "descargar-imagenes": "node scripts/descargar-imagenes-faltantes.mjs"
+    "descargar-imagenes": "node scripts/descargar-imagenes-faltantes.mjs",
+    "asignar-imagenes-manuales": "node scripts/asignar-imagenes-manuales.mjs"
   }
 }

@@ -7,8 +7,9 @@
  * Quien recibe una foto nueva queda con la ruta en `imagen` e `imagen_download: true`.
  *
  * La búsqueda usa el nombre del producto (y la marca, si no está ya en el nombre).
- * Las fotos salen de resultados públicos de Bing Imágenes. Pueden estar sujetas
- * a derechos de autor; conviene revisarlas antes de publicarlas.
+ * La búsqueda usa Bing Imágenes. Si Bing no trae fotos o responde 429, sigue con
+ * Yandex Imágenes. Pueden estar sujetas a derechos de autor; conviene revisarlas
+ * antes de publicarlas.
  *
  * Reanudable: si el archivo ya está en disco, no vuelve a buscarlo.
  * El avance queda en build/imagenes-descarga-estado.json.
@@ -97,31 +98,60 @@ function buildQuery(product) {
   return query.slice(0, 180);
 }
 
-function decodeBing(raw) {
-  return raw
+function decodeUrl(raw) {
+  let url = String(raw)
     .replace(/&amp;/g, "&")
     .replace(/\\u002f/gi, "/")
     .replace(/\\u0026/gi, "&")
     .replace(/\\\//g, "/")
     .replace(/\\"/g, '"')
     .trim();
+  try {
+    url = decodeURIComponent(url);
+  } catch {
+    // La URL ya venía decodificada.
+  }
+  if (url.startsWith("//")) url = `https:${url}`;
+  return url;
 }
 
-function extractImageUrls(html) {
+function keepImageUrl(url) {
+  if (!/^https?:\/\//i.test(url)) return false;
+  return !/(bing\.net|bing\.com|yandex\.|yastatic\.|gstatic\.com|favicon|sprite|1x1|pixel\.gif)/i.test(url);
+}
+
+function uniqueUrls(urls) {
+  return [...new Set(urls.filter(keepImageUrl))];
+}
+
+function extractBingUrls(html) {
   const urls = [];
   const re = /murl&quot;:&quot;(.*?)&quot;/g;
   let match;
-  while ((match = re.exec(html))) {
-    let url = decodeBing(match[1]);
-    if (url.startsWith("//")) url = `https:${url}`;
-    if (!/^https?:\/\//i.test(url)) continue;
-    if (/(\.bing\.net|\.bing\.com|gstatic\.com|favicon|sprite|1x1|pixel\.gif)/i.test(url)) continue;
-    urls.push(url);
-  }
-  return [...new Set(urls)];
+  while ((match = re.exec(html))) urls.push(decodeUrl(match[1]));
+  return uniqueUrls(urls);
 }
 
-async function searchImages(query, timeoutMs) {
+function extractYandexUrls(html) {
+  const urls = [];
+  const re = /img_url=(https?[^&"\s]+)/g;
+  let match;
+  while ((match = re.exec(html))) urls.push(decodeUrl(match[1]));
+  return uniqueUrls(urls);
+}
+
+async function fetchSearch(url, timeoutMs) {
+  return fetch(url, {
+    headers: {
+      "User-Agent": UA,
+      "Accept-Language": "es-MX,es;q=0.9,en;q=0.5",
+      Accept: "text/html,application/xhtml+xml",
+    },
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+}
+
+async function searchBing(query, timeoutMs) {
   const endpoint =
     "https://www.bing.com/images/async?q=" +
     encodeURIComponent(query) +
@@ -129,28 +159,59 @@ async function searchImages(query, timeoutMs) {
   let lastError;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const response = await fetch(endpoint, {
-        headers: {
-          "User-Agent": UA,
-          "Accept-Language": "es-MX,es;q=0.9,en;q=0.5",
-          Accept: "text/html,application/xhtml+xml",
-        },
-        signal: AbortSignal.timeout(timeoutMs),
-      });
+      const response = await fetchSearch(endpoint, timeoutMs);
       if (response.status === 429 || response.status >= 500) {
         lastError = new Error(`búsqueda HTTP ${response.status}`);
         await sleep(1500 * attempt);
         continue;
       }
       if (!response.ok) throw new Error(`búsqueda HTTP ${response.status}`);
-      const html = await response.text();
-      return extractImageUrls(html);
+      return extractBingUrls(await response.text());
     } catch (error) {
       lastError = error;
       await sleep(800 * attempt);
     }
   }
   throw lastError || new Error("búsqueda fallida");
+}
+
+async function searchYandex(query, timeoutMs) {
+  const endpoint = "https://yandex.com/images/search?text=" + encodeURIComponent(query);
+  let lastError;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const response = await fetchSearch(endpoint, timeoutMs);
+      if (response.status === 429 || response.status >= 500) {
+        lastError = new Error(`Yandex HTTP ${response.status}`);
+        await sleep(1500 * attempt);
+        continue;
+      }
+      if (!response.ok) throw new Error(`Yandex HTTP ${response.status}`);
+      return extractYandexUrls(await response.text());
+    } catch (error) {
+      lastError = error;
+      await sleep(800 * attempt);
+    }
+  }
+  throw lastError || new Error("búsqueda fallida");
+}
+
+async function searchImages(query, timeoutMs) {
+  let lastError;
+  try {
+    const bing = await searchBing(query, timeoutMs);
+    if (bing.length) return bing;
+    lastError = new Error("sin resultados");
+  } catch (error) {
+    lastError = error;
+  }
+  try {
+    const yandex = await searchYandex(query, timeoutMs);
+    if (yandex.length) return yandex;
+  } catch (error) {
+    lastError = error;
+  }
+  throw lastError || new Error("sin resultados");
 }
 
 function sniff(buffer) {
@@ -193,7 +254,7 @@ async function downloadCandidate(url, timeoutMs) {
     headers: {
       "User-Agent": UA,
       Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-      Referer: "https://www.bing.com/",
+      Referer: new URL(url).origin + "/",
     },
     redirect: "follow",
     signal: AbortSignal.timeout(timeoutMs),
@@ -235,6 +296,7 @@ function catalogFrom(source, state) {
     if (hasImage(product)) return product;
     const saved = state.items[product.id];
     if (saved?.status === "ok" && saved.imagen) {
+      if (saved.manual) return { ...product, imagen: saved.imagen, imagen_manual: true };
       return { ...product, imagen: saved.imagen, imagen_download: true };
     }
     return product;
@@ -280,6 +342,7 @@ function selectPending(products, cfg, state) {
         sourceUrl: previous?.sourceUrl || "",
         at: previous?.at || new Date().toISOString(),
         reused: true,
+        ...(previous?.manual ? { manual: true } : {}),
       };
       if (existing.ext === "jpeg") {
         const from = existing.abs;
