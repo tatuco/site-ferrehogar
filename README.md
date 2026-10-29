@@ -192,20 +192,28 @@ Acepta `.jpg`, `.jpeg`, `.png`, `.webp` y `.gif`. Un nombre con espacios o sin p
 
 ## Actualizar las fotos del sitio
 
-`build/index.html` no lee `imagenes-r2.json`. Carga `build/datos.js` y muestra `imagen` de cada producto. Esas rutas son locales (`img/...`), relativas a `build/`.
+El sitio se publica en Cloudflare Pages. `build/img/` está en `.gitignore`, así que esas fotos no viajan con la Page. `build/index.html` no lee `imagenes-r2.json`: carga `build/datos.js` y usa el campo `imagen` como `src`. Ese campo tiene que ser la URL pública de R2.
 
-Este comando regenera `datos.js` desde el catálogo que ya tiene todas las fotos:
+Este comando copia cada URL del mapa al producto y regenera `datos.js`:
 
 ```bash
 node --input-type=module -e '
 import fs from "node:fs";
-const raw = fs.readFileSync("build/catalogo.con-imagenes.json", "utf8").trim();
-JSON.parse(raw);
-fs.writeFileSync("build/datos.js", `window.CATALOGO = ${raw};\n`);
+const catalog = JSON.parse(fs.readFileSync("build/catalogo.con-imagenes.json", "utf8"));
+const map = JSON.parse(fs.readFileSync("build/imagenes-r2.json", "utf8"));
+let aplicadas = 0;
+for (const product of catalog.productos) {
+  const url = map.imagenes?.[product.id];
+  if (!url) continue;
+  product.imagen = url;
+  aplicadas++;
+}
+fs.writeFileSync("build/datos.js", `window.CATALOGO = ${JSON.stringify(catalog)};\n`);
+console.log(`Imágenes con URL de R2: ${aplicadas}`);
 '
 ```
 
-Después recarga `build/index.html`.
+Después hay que volver a publicar la Page para que tome el `datos.js` nuevo.
 
 ## Exportar inventario
 
