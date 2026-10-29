@@ -1,0 +1,14 @@
+{
+  "name": "ferreteria-catalogo-meta",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "subir-catalogo": "node scripts/subir-catalogo-meta.mjs",
+    "subir-catalogo:dry": "node scripts/subir-catalogo-meta.mjs --dry-run",
+    "subir-imagenes": "node scripts/subir-imagenes-r2.mjs",
+    "subir-imagenes:dry": "node scripts/subir-imagenes-r2.mjs --dry-run",
+    "descargar-imagenes": "node scripts/descargar-imagenes-faltantes.mjs"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "generado": "2026-10-23T02:52:45.116Z",
+  "dryRun": true,
+  "documentacion": {
+    "itemsBatch": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/items_batch",
+    "campos": "https://developers.facebook.com/docs/marketing-api/catalog/reference",
+    "whatsapp": "https://developers.facebook.com/docs/whatsapp/cloud-api/guides/sell-products-and-services/upload-inventory"
+  },
+  "origen": {
+    "archivo": "build/catalogo.json",
+    "total": 16510,
+    "monedaCatalogo": "MXN",
+    "preciosSinIVA": true
+  },
+  "envio": {
+    "graph": "v25.0",
+    "catalogId": null,
+    "method": "UPDATE",
+    "allowUpsert": true,
+    "itemType": "PRODUCT_ITEM",
+    "currency": "MXN",
+    "includeIva": false,
+    "batchSize": 2000,
+    "linkWhatsapp": false
+  },
+  "resultado": {
+    "considerados": 16510,
+    "validos": 2927,
+    "omitidos": 13583,
+    "motivos": {
+      "precio invalido": 21,
+      "sin imagen publica": 13583,
+      "sin nombre": 2
+    },
+    "lotes": 2
+  },
+  "muestra": [
+    {
+      "method": "UPDATE",
+      "data": {
+        "id": "angel-light-14071",
+        "title": "Panel led redondo 3 tonos superficial",
+        "description": "Panel led redondo 3 tonos superficial. Marca: ANGEL LIGHT. Código: 14071. Unidad: PZA",
+        "availability": "in stock",
+        "condition": "new",
+        "price": "7.41 MXN",
+        "link": "https://ejemplo.com/producto/angel-light-14071",
+        "image_link": "https://ejemplo.com/img/angel-light/angel-light-14071.jpg",
+        "status": "active",
+        "brand": "ANGEL LIGHT",
+        "mpn": "AL-PDOB02RCCT-24W",
+        "quantity_to_sell_on_facebook": 124,
+        "custom_label_0": "raul",
+        "custom_label_1": "angel-light",
+        "custom_label_2": "BANO Y ACCESORIOS",
+        "custom_label_3": "REGADERAS Y DUCHAS",
+        "custom_label_4": "MOBILIARIO, HOGAR Y ORDEN"
+      }
+    },
+    {
+      "method": "UPDATE",
+      "data": {
+        "id": "angel-light-9259",
+        "title": "Socate para bombillo colgante ocre angel",
+        "description": "Socate para bombillo colgante ocre angel. Marca: ANGEL LIGHT. Código: 9259. Unidad: PZA",
+        "availability": "in stock",
+        "condition": "new",
+        "price": "4.42 MXN",
+        "link": "https://ejemplo.com/producto/angel-light-9259",
+        "image_link": "https://ejemplo.com/img/angel-light/angel-light-9259.jpg",
+        "status": "active",
+        "brand": "ANGEL LIGHT",
+        "mpn": "A105-DSYD-DS",
+        "quantity_to_sell_on_facebook": 28,
+        "custom_label_0": "raul",
+        "custom_label_1": "angel-light",
+        "custom_label_2": "ELECTRICIDAD",
+        "custom_label_3": "BASES PARA BMBLLO - SOCATES",
+        "custom_label_4": "ELECTRICIDAD"
+      }
+    }
+  ],
+  "lotes": [],
+  "vinculoWhatsapp": null,
+  "error": null
+}
