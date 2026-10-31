@@ -164,7 +164,7 @@ function help() {
   console.log(`Uso:
   node scripts/subir-catalogo-meta.mjs [--dry-run] [--link] [--limit N]
 
-Lee las variables de .env y sube build/catalogo.json a Meta.
+Lee las variables de .env y sube build/catalogo-ferrehogar-interno.json a Meta.
 
   --dry-run   Valida y escribe el reporte, sin llamar a Graph API.
   --link      Asocia el catálogo a WHATSAPP_BUSINESS_ACCOUNT_ID.
@@ -221,7 +221,7 @@ function readConfig(args) {
     catalogName: process.env.CATALOG_NAME || "Ferreteria",
     createCatalog: bool(process.env.CREATE_CATALOG_IF_MISSING, false),
     wabaId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || "",
-    catalogPath: path.resolve(ROOT, process.env.CATALOG_PATH || "build/catalogo.json"),
+    catalogPath: path.resolve(ROOT, process.env.CATALOG_PATH || "build/catalogo-ferrehogar-interno.json"),
     currency: (process.env.CURRENCY || "").toUpperCase(),
     includeIva: bool(process.env.INCLUDE_IVA, false),
     ivaRate: Number(process.env.IVA_RATE || "0.16"),

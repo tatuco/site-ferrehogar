@@ -16,7 +16,7 @@
  *
  *   node scripts/descargar-imagenes-faltantes.mjs
  *   node scripts/descargar-imagenes-faltantes.mjs --limit 20 --catalogo jesus
- *   node scripts/descargar-imagenes-faltantes.mjs --out build/catalogo.json
+ *   node scripts/descargar-imagenes-faltantes.mjs --out build/catalogo-ferrehogar-interno.json
  */
 
 import fs from "node:fs";
@@ -306,7 +306,7 @@ function catalogFrom(source, state) {
 
 function configFromArgs(args) {
   return {
-    catalogPath: path.resolve(ROOT, argValue(args, "catalog") || "build/catalogo.json"),
+    catalogPath: path.resolve(ROOT, argValue(args, "catalog") || "build/catalogo-ferrehogar-interno.json"),
     outPath: path.resolve(ROOT, argValue(args, "out") || "build/catalogo.con-imagenes.json"),
     statePath: path.resolve(ROOT, argValue(args, "estado") || "build/imagenes-descarga-estado.json"),
     imgRoot: path.resolve(ROOT, argValue(args, "img-dir") || "build/img"),

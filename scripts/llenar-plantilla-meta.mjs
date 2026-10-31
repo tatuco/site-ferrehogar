@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * Llena la plantilla CSV de catálogo de Meta con los productos que tienen
- * imagen pública en build/imagenes-r2.json.
+ * Llena la plantilla CSV de catálogo de Meta desde
+ * build/catalogo-ferrehogar-interno.js.
  *
- * Escribe las columnas obligatorias y un precio fijo. El resto de opcionales
- * quedan vacíos. image_link es la URL de R2. link abre WhatsApp con el
- * producto en el mensaje. price sigue el formato de la plantilla: número con
- * punto decimal, espacio y código ISO 4217.
+ * Escribe las columnas obligatorias. El resto de opcionales quedan vacíos.
+ * image_link es la imagen pública del producto. link abre WhatsApp con el
+ * producto en el mensaje. price usa el precio del catálogo, en dólares; si
+ * no hay un precio mayor que cero, queda en 1.00 USD. El formato es el de
+ * la plantilla: número con punto decimal, espacio y código ISO 4217.
  *
  * Uso: node scripts/llenar-plantilla-meta.mjs
  */
@@ -16,8 +17,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const CATALOGO = path.join(ROOT, "build", "catalogo.json");
-const IMAGENES = path.join(ROOT, "build", "imagenes-r2.json");
+const CATALOGO = path.join(ROOT, "build", "catalogo-ferrehogar-interno.js");
 const PLANTILLA = path.join(ROOT, "build", "catalog_products.csv");
 
 const TITLE_MAX = 200;
@@ -25,7 +25,8 @@ const DESCRIPTION_MAX = 9999;
 const SHORT_MAX = 100;
 const FILLED = ["id", "title", "description", "availability", "condition", "link", "image_link", "brand"];
 const WHATSAPP_PHONE = "584221608331";
-const PRICE = "1.00 USD";
+const CURRENCY = "USD";
+const DEFAULT_PRICE = 1;
 
 function clip(value, max) {
   const text = String(value ?? "")
@@ -77,8 +78,26 @@ function csvField(value) {
   return text;
 }
 
-function loadJson(file) {
-  return JSON.parse(fs.readFileSync(file, "utf8"));
+function loadCatalogo(file) {
+  const raw = fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "").trim();
+  const start = raw.indexOf("{");
+  if (start < 0) {
+    throw new Error(`${path.relative(ROOT, file)} no contiene el catálogo.`);
+  }
+  try {
+    return JSON.parse(raw.slice(start).replace(/;\s*$/, ""));
+  } catch (error) {
+    throw new Error(`No se pudo leer ${path.relative(ROOT, file)}: ${error.message}`);
+  }
+}
+
+function priceOf(product) {
+  const amount = Number(product?.precio);
+  const usable = Number.isFinite(amount) && amount > 0 ? amount : DEFAULT_PRICE;
+  return {
+    text: `${usable.toFixed(2)} ${CURRENCY}`,
+    porDefecto: !(Number.isFinite(amount) && amount > 0),
+  };
 }
 
 function headerLines(file) {
@@ -93,11 +112,13 @@ function headerLines(file) {
   return { newline, description, columns: columns.split(",") };
 }
 
-function rowOf(product, imageUrl, columns) {
+function rowOf(product, columns) {
   const id = clip(product.id, SHORT_MAX);
   const title = clip(readable(textOf(product, "nombre")), TITLE_MAX);
   const description = descriptionOf(product);
   const brand = clip(readable(textOf(product, "marca")), SHORT_MAX);
+  const imageUrl = textOf(product, "imagen");
+  const price = priceOf(product);
   const availability =
     typeof product.existencia === "number" && product.existencia <= 0 ? "out of stock" : "in stock";
 
@@ -115,27 +136,23 @@ function rowOf(product, imageUrl, columns) {
     description,
     availability,
     condition: "new",
-    price: PRICE,
+    price: price.text,
     link: whatsappLink(title, textOf(product, "codigo")),
     image_link: imageUrl,
     brand,
   };
   return {
     reasons,
+    porDefecto: price.porDefecto,
     line: columns.map((column) => csvField(values[column] ?? "")).join(","),
   };
 }
 
 function main() {
-  const catalogo = loadJson(CATALOGO);
-  const imagenes = loadJson(IMAGENES);
-  const mapa = imagenes?.imagenes;
-  if (!mapa || typeof mapa !== "object" || Array.isArray(mapa)) {
-    throw new Error("build/imagenes-r2.json no tiene un objeto imagenes.");
-  }
+  const catalogo = loadCatalogo(CATALOGO);
   const productos = catalogo?.productos;
   if (!Array.isArray(productos)) {
-    throw new Error("build/catalogo.json no tiene un arreglo productos.");
+    throw new Error("build/catalogo-ferrehogar-interno.js no tiene un arreglo productos.");
   }
 
   const { newline, description, columns } = headerLines(PLANTILLA);
@@ -147,14 +164,14 @@ function main() {
   const lines = [];
   const porCatalogo = {};
   const omitidos = [];
+  let porDefecto = 0;
   for (const product of productos) {
-    const imageUrl = mapa[product?.id];
-    if (typeof imageUrl !== "string") continue;
-    const row = rowOf(product, imageUrl, columns);
+    const row = rowOf(product, columns);
     if (row.reasons.length) {
       omitidos.push(`${product?.id || "(sin id)"}: ${row.reasons.join(", ")}`);
       continue;
     }
+    if (row.porDefecto) porDefecto += 1;
     lines.push(row.line);
     const catalogoId = textOf(product, "catalogo") || "(sin catalogo)";
     porCatalogo[catalogoId] = (porCatalogo[catalogoId] || 0) + 1;
@@ -164,7 +181,8 @@ function main() {
   fs.writeFileSync(PLANTILLA, body);
 
   console.log(`Plantilla: ${path.relative(ROOT, PLANTILLA)}`);
-  console.log(`Productos con imagen: ${lines.length}`);
+  console.log(`Productos escritos: ${lines.length}`);
+  console.log(`Precio por defecto ${DEFAULT_PRICE.toFixed(2)} ${CURRENCY}: ${porDefecto}`);
   for (const [nombre, total] of Object.entries(porCatalogo).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${nombre}: ${total}`);
   }

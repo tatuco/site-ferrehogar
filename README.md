@@ -70,7 +70,7 @@ Opcionales:
 | `DRY_RUN` | `false` | `--dry-run` |
 | `LIMIT` | `0` | `--limit` |
 | `R2_CONCURRENCY` | `6` (entre 1 y 16) | — |
-| `CATALOG_PATH` | `build/catalogo.json` | — |
+| `CATALOG_PATH` | `build/catalogo-ferrehogar-interno.json` | — |
 | `IMAGENES_R2_PATH` | `build/imagenes-r2.json` | — |
 | `SOLO_NUEVAS` | `false` | `--solo-nuevas` |
 | `VERIFICAR` | `false` | `--verificar` |
@@ -120,7 +120,7 @@ Opcionales:
 | `CATALOG_NAME` | `Ferreteria` | — |
 | `LINK_WHATSAPP_CATALOG` | `false` | `--link` |
 | `WHATSAPP_BUSINESS_ACCOUNT_ID` | — | — |
-| `CATALOG_PATH` | `build/catalogo.json` | — |
+| `CATALOG_PATH` | `build/catalogo-ferrehogar-interno.json` | — |
 | `CURRENCY` | `USD` | Código ISO 4217. Los precios están en dólares. |
 | `INCLUDE_IVA` | `false` | Con `true`, envía precio × (1 + `IVA_RATE`). |
 | `IVA_RATE` | `0.16` | Número ≥ 0. |
@@ -156,7 +156,7 @@ npm run descargar-imagenes -- --limit 20 --catalogo jesus
 
 | Flag | Default | Efecto |
 |---|---|---|
-| `--catalog` | `build/catalogo.json` | Catálogo de entrada. |
+| `--catalog` | `build/catalogo-ferrehogar-interno.json` | Catálogo de entrada. |
 | `--out` | `build/catalogo.con-imagenes.json` | Catálogo de salida. |
 | `--estado` | `build/imagenes-descarga-estado.json` | Avance reanudable. |
 | `--img-dir` | `build/img` | Carpeta de las fotos. |
@@ -217,7 +217,7 @@ Después hay que volver a publicar la Page para que tome el `datos.js` nuevo.
 
 ## Exportar inventario
 
-Sin flags. Lee `build/catalogo.json` y escribe `build/inventario.csv`.
+Sin flags. Lee `build/catalogo-ferrehogar-interno.json` y escribe `build/inventario.csv`.
 
 ```bash
 node scripts/exportar-inventario.mjs
@@ -227,7 +227,7 @@ El CSV sale en UTF-8 con BOM, separador `;` y una primera fila `sep=;` para Exce
 
 ## Llenar plantilla de Meta
 
-Sin flags. Lee `build/catalogo.json` y `build/imagenes-r2.json`, y escribe `build/catalog_products.csv`.
+Sin flags. Lee `build/catalogo-ferrehogar-interno.json` y `build/imagenes-r2.json`, y escribe `build/catalog_products.csv`.
 
 ```bash
 node scripts/llenar-plantilla-meta.mjs

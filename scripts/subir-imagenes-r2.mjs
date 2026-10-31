@@ -147,7 +147,7 @@ function readConfig(args) {
     bucket: process.env.R2_BUCKET || "",
     prefix: String(process.env.R2_PREFIX || "").replace(/^\/+|\/+$/g, ""),
     publicBaseUrl,
-    catalogPath: path.resolve(ROOT, process.env.CATALOG_PATH || "build/catalogo.json"),
+    catalogPath: path.resolve(ROOT, process.env.CATALOG_PATH || "build/catalogo-ferrehogar-interno.json"),
     outputPath: path.resolve(ROOT, process.env.IMAGENES_R2_PATH || "build/imagenes-r2.json"),
   };
 

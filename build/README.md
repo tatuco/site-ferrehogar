@@ -79,7 +79,7 @@ Requiere PowerShell 5.1 (sin Python/Node en este equipo).
 powershell -NoProfile -ExecutionPolicy Bypass -File "tools\Build-Catalogo.ps1"
 ```
 
-El script lee los PDFs desde el escritorio, normaliza unidades/medidas, asigna marca cuando falta (usando el nombre comercial del catálogo), calcula descuentos/precios finales, genera `build\catalogo.json` y `build\datos.js`, y copia el sitio a `build\`.
+El script lee los PDFs desde el escritorio, normaliza unidades/medidas, asigna marca cuando falta (usando el nombre comercial del catálogo), calcula descuentos/precios finales, genera `build\catalogo-ferrehogar-interno.json` y `build\datos.js`, y copia el sitio a `build\`.
 
 **Importante:** Al editar scripts `.ps1`, guardarlos con **UTF-8 BOM** (el sistema tiene cultura `es-VE` y PowerShell 5.1 lee sin BOM como ANSI).
 
