@@ -522,9 +522,9 @@ async function linkCatalog(cfg) {
 function loadProducts(cfg) {
   const raw = JSON.parse(fs.readFileSync(cfg.catalogPath, "utf8"));
   const products = Array.isArray(raw.productos) ? raw.productos : [];
-  if (!cfg.currency) cfg.currency = String(raw.meta?.moneda || "MXN").toUpperCase();
+  if (!cfg.currency) cfg.currency = "USD";
   if (!/^[A-Z]{3}$/.test(cfg.currency)) {
-    throw new Error("CURRENCY debe ser un código ISO 4217 de 3 letras, por ejemplo MXN");
+    throw new Error("CURRENCY debe ser un código ISO 4217 de 3 letras, por ejemplo USD");
   }
   return { raw, products };
 }

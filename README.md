@@ -121,7 +121,7 @@ Opcionales:
 | `LINK_WHATSAPP_CATALOG` | `false` | `--link` |
 | `WHATSAPP_BUSINESS_ACCOUNT_ID` | — | — |
 | `CATALOG_PATH` | `build/catalogo.json` | — |
-| `CURRENCY` | `meta.moneda` del JSON | Código ISO 4217. |
+| `CURRENCY` | `USD` | Código ISO 4217. Los precios están en dólares. |
 | `INCLUDE_IVA` | `false` | Con `true`, envía precio × (1 + `IVA_RATE`). |
 | `IVA_RATE` | `0.16` | Número ≥ 0. |
 | `IMAGE_BASE_URL` | — | Prefijo público de las rutas relativas. |

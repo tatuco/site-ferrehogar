@@ -412,7 +412,7 @@ function urlPublica(indice, id) {
 function generarSalidas(db, indice) {
   const productos = db.productos.map((producto) => copiarProducto(producto));
   const catalogo = {
-    meta: { ...db.meta, generado: new Date().toISOString() },
+    meta: { ...db.meta, generado: new Date().toISOString(), moneda: "USD" },
     proveedores: db.proveedores,
     catalogos: db.catalogos,
     productos,
@@ -452,7 +452,7 @@ function generarSalidas(db, indice) {
   const cotizador = {
     meta: {
       generado: catalogo.meta.generado,
-      moneda: catalogo.meta.moneda || "MXN",
+      moneda: "USD",
       preciosSinIVA: catalogo.meta.preciosSinIVA ?? true,
       nota: "Precios de venta con el margen mínimo de cada categoría. No incluye el costo del proveedor.",
     },

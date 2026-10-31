@@ -25,7 +25,7 @@ const DESCRIPTION_MAX = 9999;
 const SHORT_MAX = 100;
 const FILLED = ["id", "title", "description", "availability", "condition", "link", "image_link", "brand"];
 const WHATSAPP_PHONE = "584221608331";
-const PRICE = "1.00 MXN";
+const PRICE = "1.00 USD";
 
 function clip(value, max) {
   const text = String(value ?? "")

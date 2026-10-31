@@ -9,7 +9,7 @@
   "origen": {
     "archivo": "build/catalogo.json",
     "total": 16510,
-    "monedaCatalogo": "MXN",
+    "monedaCatalogo": "USD",
     "preciosSinIVA": true
   },
   "envio": {
@@ -18,7 +18,7 @@
     "method": "UPDATE",
     "allowUpsert": true,
     "itemType": "PRODUCT_ITEM",
-    "currency": "MXN",
+    "currency": "USD",
     "includeIva": false,
     "batchSize": 2000,
     "linkWhatsapp": false
@@ -43,7 +43,7 @@
         "description": "Panel led redondo 3 tonos superficial. Marca: ANGEL LIGHT. Código: 14071. Unidad: PZA",
         "availability": "in stock",
         "condition": "new",
-        "price": "7.41 MXN",
+        "price": "7.41 USD",
         "link": "https://ejemplo.com/producto/angel-light-14071",
         "image_link": "https://ejemplo.com/img/angel-light/angel-light-14071.jpg",
         "status": "active",
@@ -65,7 +65,7 @@
         "description": "Socate para bombillo colgante ocre angel. Marca: ANGEL LIGHT. Código: 9259. Unidad: PZA",
         "availability": "in stock",
         "condition": "new",
-        "price": "4.42 MXN",
+        "price": "4.42 USD",
         "link": "https://ejemplo.com/producto/angel-light-9259",
         "image_link": "https://ejemplo.com/img/angel-light/angel-light-9259.jpg",
         "status": "active",

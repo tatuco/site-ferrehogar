@@ -538,7 +538,7 @@ export function asignarMargenes(catalogo) {
   catalogo.margenes = {
     generado: new Date().toISOString(),
     fuente: "Tabla de margen recomendado (inicio)",
-    moneda: catalogo.meta?.moneda || "MXN",
+    moneda: "USD",
     preciosSinIVA: catalogo.meta?.preciosSinIVA ?? true,
     nota:
       "El margen se aplica sobre el precio de catálogo del proveedor, que está sin IVA. Iluminación quedó en Grifería, Electricidad y Plomería. Mechas, brocas, discos, tornillería, adhesivos, químicos y equipo de protección quedaron en Cerrajería, Consumibles y Pinturas. Obra negra queda definida para cemento, cabilla, bloques y tubos estructurales; este catálogo no trae esos productos. Otros agrupa lo que no entró en esas familias, con margen 15%–18%.",

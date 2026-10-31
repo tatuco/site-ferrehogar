@@ -399,7 +399,7 @@ function normCached(s) {
   return v;
 }
 
-const money = new Intl.NumberFormat('es-MX', { style: 'currency', currency: META.moneda || 'MXN', minimumFractionDigits: 2 });
+const money = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
 const num = new Intl.NumberFormat('es-MX');
 function fmtPrecio(v) { return (v === null || v === undefined) ? '—' : money.format(v); }
 function fmtNum(v)   { return (v === null || v === undefined) ? '—' : num.format(v); }
@@ -1187,7 +1187,7 @@ function init() {
   $('#metaInfo').textContent =
     num.format(PRODUCTOS.length) + ' productos · ' + PROVEEDORES.length + ' proveedores · ' +
     CATALOGOS.length + ' catálogos · generado ' + (META.generado || '').slice(0, 10) +
-    ' · precios en ' + (META.moneda || 'MXN') + (META.preciosSinIVA ? ' sin IVA' : '');
+    ' · precios en dólares' + (META.preciosSinIVA ? ' sin IVA' : '');
 
   $('#q').value = state.q;
   $('#btnClearQ').hidden = !state.q;

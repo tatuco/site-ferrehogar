@@ -21,7 +21,7 @@ Se generó desde los PDFs en `C:\Users\Tatico\OneDrive\Desktop\catalogo de prove
     "totalProveedores": 6,
     "totalCatalogos": 14,
     "preciosSinIVA": true,
-    "moneda": "MXN"
+    "moneda": "USD"
   },
   "proveedores": [{"id": "...", "nombre": "...", "contacto": "..."}],
   "catalogos": [{"id": "...", "nombre": "...", "proveedor": "...", "archivo": "...", "familia": "...", "columnas": {...}}],
@@ -84,7 +84,7 @@ El script lee los PDFs desde el escritorio, normaliza unidades/medidas, asigna m
 **Importante:** Al editar scripts `.ps1`, guardarlos con **UTF-8 BOM** (el sistema tiene cultura `es-VE` y PowerShell 5.1 lee sin BOM como ANSI).
 
 ## Notas sobre los datos
-- **Moneda**: MXN. **Los precios no incluyen IVA** (verificado en FERRE-EXPORT).
+- **Moneda**: USD. **Los precios no incluyen IVA** (verificado en FERRE-EXPORT).
 - `7,992` productos sin marca declarada en origen → se usa el nombre comercial del catálogo como marca (con `marcaOriginal = ""`).
 - Unidades normalizadas (`PZA`, `CAJA`, `KG`, `MT`, `ROLLO`, `JUEGO`, etc.). Columna numérica `u` de WOKIN se mapea a `ventaMinima`.
 - Descuentos aplicados según columna `dcto` (cuando existe). `precioFinal` puede diferir de `precio`.

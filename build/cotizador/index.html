@@ -55,7 +55,9 @@ a{color:var(--brand)}
   padding:0 1.2rem .65rem;background:var(--bg);color:var(--txt2);font-size:.8rem;
 }
 .contact .addr{flex:1 1 280px}
-.phones{display:flex;gap:.35rem .85rem;flex-wrap:wrap}
+.phones{display:flex;gap:.35rem 1.1rem;flex-wrap:wrap;align-items:baseline}
+.phone{display:inline-flex;gap:.35rem;align-items:baseline;flex-wrap:wrap}
+.phone .rol{font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--txt3)}
 .phones a{font-weight:650;text-decoration:none;white-space:nowrap}
 .phones a:hover{text-decoration:underline}
 
@@ -252,9 +254,15 @@ select:focus,input[type=number]:focus,input[type=text]:focus{border-color:var(--
 <div class="contact">
   <p class="addr">Calle principal Tucape Parte Alta. Casa Nro 8 Conjunto Residencial Tucape Tariba</p>
   <p class="phones">
-    <a href="tel:04221608331">04221608331</a>
-    <a href="tel:0221452593">022-1452593</a>
-    <a href="tel:04127286289">04127286289</a>
+    <span class="phone">
+      <span class="rol">Empresa</span>
+      <a href="tel:04221452593">04221452593</a>
+    </span>
+    <span class="phone">
+      <span class="rol">Alternativos</span>
+      <a href="tel:04221608331">04221608331</a>
+      <a href="tel:04127286289">04127286289</a>
+    </span>
   </p>
 </div>
 
@@ -338,7 +346,8 @@ const EMPRESA = {
   nombre: "Alianza FerreHogar",
   rif: "J-50881495-9",
   direccion: "Calle principal Tucape Parte Alta. Casa Nro 8 Conjunto Residencial Tucape Tariba",
-  telefonos: ["04221608331", "022-1452593", "04127286289"]
+  telefono: "04221452593",
+  telefonosAlternativos: ["04221608331", "04127286289"]
 };
 
 const PAGE = 30;
@@ -360,8 +369,8 @@ const state = {
 
 let productos = [];
 let porId = new Map();
-let meta = { moneda: "MXN", preciosSinIVA: true };
-let money = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
+let meta = { moneda: "USD", preciosSinIVA: true };
+let money = new Intl.NumberFormat("es-MX", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
 const num = new Intl.NumberFormat("es-MX");
 
 function norm(s) {
@@ -683,13 +692,17 @@ function actualizarTotal() {
   $("#btnVaciar").disabled = vacio;
 }
 
+function textoTelefonos() {
+  return "Tel. empresa " + EMPRESA.telefono + " · Alternativos " + EMPRESA.telefonosAlternativos.join(" · ");
+}
+
 function textoCotizacion() {
   const t = totales();
   const lineas = [
     EMPRESA.nombre,
     "RIF " + EMPRESA.rif,
     EMPRESA.direccion,
-    "Tel. " + EMPRESA.telefonos.join(" · "),
+    textoTelefonos(),
     "",
     "Cotización de referencia — " + fechaLarga()
   ];
@@ -710,7 +723,7 @@ function textoCotizacion() {
     );
   });
   lineas.push("");
-  lineas.push("Total de referencia: " + fmtPrecio(t.suma) + " (" + (meta.moneda || "MXN") + (meta.preciosSinIVA ? ", sin IVA" : "") + ")");
+  lineas.push("Total de referencia: " + fmtPrecio(t.suma) + " (dólares" + (meta.preciosSinIVA ? ", sin IVA" : "") + ")");
   lineas.push("");
   lineas.push("Este monto es solo una referencia del costo. Está sujeto a posibles descuentos y puede cambiar al confirmar en tienda. No es una factura ni un precio cerrado.");
   return lineas.join("\n");
@@ -731,7 +744,7 @@ function llenarImpresion() {
   ident.append(h);
   ident.append(el("div", "", "RIF " + EMPRESA.rif));
   ident.append(el("div", "", EMPRESA.direccion));
-  ident.append(el("div", "", EMPRESA.telefonos.join("   ·   ")));
+  ident.append(el("div", "", textoTelefonos()));
   head.append(mark, ident);
   sheet.append(head);
 
@@ -791,10 +804,10 @@ function llenarImpresion() {
   const total = el("p", "", "Total de referencia: " + fmtPrecio(t.suma));
   total.style.cssText = "margin-top:14px;font-size:18px;font-weight:750;text-align:right;color:#9E1217";
   body.append(total);
-  const iva = el("p", "", (meta.moneda || "MXN") + (meta.preciosSinIVA ? " · precios sin IVA" : "") + " · sujeto a posibles descuentos");
+  const iva = el("p", "", "Precios en dólares" + (meta.preciosSinIVA ? ", sin IVA" : "") + " · sujeto a posibles descuentos");
   iva.style.cssText = "text-align:right;color:#8A5A12;font-size:12px;font-weight:650;margin-top:2px";
   body.append(iva);
-  const cierre = el("p", "", "Alianza FerreHogar · RIF " + EMPRESA.rif + " · " + EMPRESA.telefonos.join(" · "));
+  const cierre = el("p", "", "Alianza FerreHogar · RIF " + EMPRESA.rif + " · " + textoTelefonos());
   cierre.style.cssText = "margin-top:22px;font-size:11px;color:#6B5344";
   body.append(cierre);
   sheet.append(body);
@@ -947,9 +960,7 @@ async function iniciar() {
   try {
     const data = await cargarCatalogo();
     meta = data.meta || meta;
-    try {
-      money = new Intl.NumberFormat("es-MX", { style: "currency", currency: meta.moneda || "MXN", minimumFractionDigits: 2 });
-    } catch (e) { /* se conserva MXN */ }
+    meta.moneda = "USD";
     productos = (data.productos || []).filter(p => p && p.id);
     porId = new Map(productos.map(p => [p.id, p]));
     for (const p of productos) {
