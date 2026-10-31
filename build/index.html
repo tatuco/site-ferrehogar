@@ -115,6 +115,10 @@ select:focus,input[type=number]:focus{border-color:var(--brand)}
 .fopt .n{font-size:.72rem;color:var(--txt3);flex:none}
 .fopt.disabled{opacity:.38;cursor:default}
 .fopt .swatch{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--brand);flex:none}
+td.mg{font-size:.78rem;line-height:1.3;max-width:210px}
+td.mg .pct{font-weight:650;white-space:nowrap}
+td.mg .cat{color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+td.mg .venta{color:var(--ok);font-size:.72rem;white-space:nowrap}
 
 /* rango de precio */
 .range{display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem}
@@ -193,7 +197,7 @@ dialog::backdrop{background:rgba(15,23,42,.6)}
   .toolbar{gap:.4rem;padding:.5rem}
   .brand h1{font-size:.95rem}
   thead th:nth-child(4),tbody td:nth-child(4){display:none}
-  td.br{display:none}
+  td.br, thead th.mg, td.mg{display:none}
 }
 .scrim{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:55;display:none}
 .scrim.on{display:block}
@@ -232,6 +236,10 @@ dialog::backdrop{background:rgba(15,23,42,.6)}
     <option value="proveedor-asc">Proveedor (A-Z)</option>
     <option value="marca-asc">Marca (A-Z)</option>
     <option value="existencia-desc">Existencia (mayor a menor)</option>
+    <option value="margen-asc">Margen mínimo (menor a mayor)</option>
+    <option value="margen-desc">Margen mínimo (mayor a menor)</option>
+    <option value="venta-asc">Precio de venta (menor a mayor)</option>
+    <option value="venta-desc">Precio de venta (mayor a menor)</option>
     <option value="codigo-asc">Código (A-Z)</option>
   </select>
   <select id="pageSize" title="Filas por página">
@@ -273,6 +281,11 @@ dialog::backdrop{background:rgba(15,23,42,.6)}
     </details>
 
     <details class="facet" open>
+      <summary>Margen de ganancia <span class="count" id="cMargen"></span></summary>
+      <div class="facet-body" id="fMargen"></div>
+    </details>
+
+    <details class="facet" open>
       <summary>Precio <span class="count" id="cPrecio"></span></summary>
       <div class="range">
         <input type="number" id="pMin" placeholder="mín." step="0.01" min="0">
@@ -308,6 +321,7 @@ dialog::backdrop{background:rgba(15,23,42,.6)}
           <th data-sort="existencia-desc">Existencia <span class="arr">▲</span></th>
           <th>Unidad</th>
           <th>Rubro</th>
+          <th class="mg" data-sort="margen-asc">Margen <span class="arr">▲</span></th>
           <th style="width:1%"></th>
         </tr>
       </thead>
@@ -388,6 +402,32 @@ const num = new Intl.NumberFormat('es-MX');
 function fmtPrecio(v) { return (v === null || v === undefined) ? '—' : money.format(v); }
 function fmtNum(v)   { return (v === null || v === undefined) ? '—' : num.format(v); }
 
+const MARGENES = {};
+((DB.margenes && DB.margenes.categorias) || []).forEach(c => { MARGENES[c.id] = c; });
+
+function costoDe(p) {
+  if (p.precioFinal !== undefined && p.precioFinal !== null && p.precioFinal !== '') return Number(p.precioFinal);
+  if (p.precio !== undefined && p.precio !== null && p.precio !== '') return Number(p.precio);
+  return null;
+}
+function precioVenta(p) {
+  const m = p.margen;
+  const costo = costoDe(p);
+  if (!m || m.min === null || m.min === undefined || costo === null || !Number.isFinite(costo)) return null;
+  const centavos = Math.round(costo * 100);
+  return Math.round(centavos * (100 + m.min) / 100) / 100;
+}
+function textoMargen(m) {
+  if (!m || m.min === null || m.min === undefined || m.max === null || m.max === undefined) return '';
+  return m.min + '% – ' + m.max + '%';
+}
+function etiquetaMargen(id) {
+  const def = MARGENES[id] || {};
+  const nombre = def.nombre || id || 'Sin margen';
+  const rango = def.margenMin != null && def.margenMax != null ? ' · ' + def.margenMin + '% – ' + def.margenMax + '%' : '';
+  return nombre + rango;
+}
+
 function el(tag, cls, txt) {
   const n = document.createElement(tag);
   if (cls) n.className = cls;
@@ -416,7 +456,7 @@ for (let i = 0; i < PRODUCTOS.length; i++) {
   SEARCH_KEY[i] = norm(
     (p.nombre || '') + ' ' + (p.codigo || '') + ' ' + (p.marca || '') + ' ' +
     (p.referencia || '') + ' ' + (p.catalogo || '') + ' ' + (p.proveedor || '') + ' ' +
-    ((catById[p.catalogo] || {}).nombre || '')
+    ((catById[p.catalogo] || {}).nombre || '') + ' ' + ((p.margen || {}).categoria || '')
   );
 }
 
@@ -458,7 +498,7 @@ for (let i = 0; i < PRODUCTOS.length; i++) {
 const state = {
   q: '', tokens: [],
   proveedores: new Set(), catalogos: new Set(), marcas: new Set(),
-  rubros: new Set(), unidades: new Set(),
+  rubros: new Set(), unidades: new Set(), margenes: new Set(),
   pMin: null, pMax: null, soloPrecio: false, soloStock: false,
   sort: 'nombre-asc', page: 1, pageSize: 50,
   compararPrecio: false
@@ -478,6 +518,7 @@ function coincide(p, i, skip) {
   if (skip !== 'catalogo'  && state.catalogos.size  && !state.catalogos.has(p.catalogo))  return false;
   if (skip !== 'marca'     && state.marcas.size     && !state.marcas.has(p.marca))       return false;
   if (skip !== 'rubro'     && state.rubros.size     && !state.rubros.has(p.rubro))       return false;
+  if (skip !== 'margen'    && state.margenes.size   && !state.margenes.has((p.margen || {}).id || '')) return false;
   if (skip !== 'unidad'    && state.unidades.size   && !state.unidades.has(p.unidad || '')) return false;
   if (skip !== 'precio') {
     if (state.soloPrecio && (p.precio === null || p.precio === undefined)) return false;
@@ -507,6 +548,8 @@ function ordenar(idx) {
   const cmpMarca    = (a, b) => (PRODUCTOS[a].marca || '').localeCompare(PRODUCTOS[b].marca || '', 'es');
   const cmpExist    = (a, b) => (PRODUCTOS[b].existencia ?? -1) - (PRODUCTOS[a].existencia ?? -1);
   const cmpCodigo   = (a, b) => (PRODUCTOS[a].codigo || '').localeCompare(PRODUCTOS[b].codigo || '', 'es', { numeric: true });
+  const cmpMargen   = (a, b) => ((PRODUCTOS[a].margen || {}).min ?? Infinity) - ((PRODUCTOS[b].margen || {}).min ?? Infinity);
+  const cmpVenta    = (a, b) => (precioVenta(PRODUCTOS[a]) ?? Infinity) - (precioVenta(PRODUCTOS[b]) ?? Infinity);
 
   let fn;
   switch (s) {
@@ -517,6 +560,10 @@ function ordenar(idx) {
     case 'marca-asc':       fn = cmpMarca; break;
     case 'existencia-desc': fn = cmpExist; break;
     case 'codigo-asc':      fn = cmpCodigo; break;
+    case 'margen-asc':      fn = cmpMargen; break;
+    case 'margen-desc':     fn = (a, b) => -cmpMargen(a, b); break;
+    case 'venta-asc':       fn = cmpVenta; break;
+    case 'venta-desc':      fn = (a, b) => -cmpVenta(a, b); break;
     default:                fn = cmpNombre;
   }
   idx.sort(fn);
@@ -672,6 +719,7 @@ function renderChips() {
   state.catalogos.forEach(v => add('Catálogo', (catById[v] || {}).nombre || v, () => state.catalogos.delete(v)));
   state.marcas.forEach(v => add('Marca', v, () => state.marcas.delete(v)));
   state.rubros.forEach(v => add('Rubro', v, () => state.rubros.delete(v)));
+  state.margenes.forEach(v => add('Margen', etiquetaMargen(v), () => state.margenes.delete(v)));
   state.unidades.forEach(v => add('Unidad', v, () => state.unidades.delete(v)));
   if (state.pMin !== null) add('Precio mín.', '$' + state.pMin, () => { state.pMin = null; $('#pMin').value = ''; });
   if (state.pMax !== null) add('Precio máx.', '$' + state.pMax, () => { state.pMax = null; $('#pMax').value = ''; });
@@ -699,6 +747,9 @@ function renderFacetas() {
 
   pintarFaceta('fRubro', conteoFaceta(p => p.rubro, 'rubro'), 'rubro', state.rubros);
   $('#cRubro').textContent = state.rubros.size ? state.rubros.size + ' activo(s)' : '';
+
+  pintarFaceta('fMargen', conteoFaceta(p => (p.margen || {}).id || '', 'margen'), 'margen', state.margenes, etiquetaMargen);
+  $('#cMargen').textContent = state.margenes.size ? state.margenes.size + ' activo(s)' : '';
 
   pintarFaceta('fUni', conteoFaceta(p => p.unidad || '', 'unidad'), 'unidad', state.unidades);
   $('#cUni').textContent = state.unidades.size ? state.unidades.size + ' activo(s)' : '';
@@ -748,6 +799,7 @@ function renderTabla() {
   if (state.catalogos.size) partes.push(state.catalogos.size + ' catálogo(s)');
   if (state.marcas.size) partes.push(state.marcas.size + ' marca(s)');
   if (state.rubros.size) partes.push(state.rubros.size + ' rubro(s)');
+  if (state.margenes.size) partes.push(state.margenes.size + ' margen(es)');
   $('#resSub').textContent = partes.length ? partes.join(' · ') + ' · de ' + total.toLocaleString('es-MX') + ' en total' : 'de ' + PRODUCTOS.length.toLocaleString('es-MX') + ' en total';
 
   $('#emptyBox').hidden = total > 0;
@@ -797,6 +849,24 @@ function renderTabla() {
     const tdUn = el('td'); tdUn.textContent = p.unidad || '—';
     const tdRu = el('td', 'ru', p.rubro || '—'); tdRu.title = p.rubro || '';
 
+    const tdMg = el('td', 'mg');
+    const margen = p.margen;
+    if (margen && textoMargen(margen)) {
+      const pct = el('div', 'pct', textoMargen(margen));
+      const cat = el('div', 'cat', margen.categoria || '');
+      cat.title = margen.categoria || '';
+      tdMg.appendChild(pct);
+      tdMg.appendChild(cat);
+      const venta = precioVenta(p);
+      if (venta !== null) {
+        const linea = el('div', 'venta', 'Venta ' + fmtPrecio(venta));
+        linea.title = 'Precio de venta con el margen mínimo de ' + margen.min + '%';
+        tdMg.appendChild(linea);
+      }
+    } else {
+      tdMg.textContent = '—';
+    }
+
     const tdAc = el('td', 'act');
     const bDet = el('button', 'mini', 'Ver'); bDet.addEventListener('click', () => abrirDetalle(p));
     const bCmp = el('button', 'mini', '＋'); bCmp.title = 'Agregar a comparar';
@@ -804,7 +874,7 @@ function renderTabla() {
     tdAc.appendChild(bDet); tdAc.appendChild(document.createTextNode(' ')); tdAc.appendChild(bCmp);
 
     tr.appendChild(tdCod); tr.appendChild(tdNm); tr.appendChild(tdProv); tr.appendChild(tdMarca);
-    tr.appendChild(tdPr); tr.appendChild(tdEx); tr.appendChild(tdUn); tr.appendChild(tdRu); tr.appendChild(tdAc);
+    tr.appendChild(tdPr); tr.appendChild(tdEx); tr.appendChild(tdUn); tr.appendChild(tdRu); tr.appendChild(tdMg); tr.appendChild(tdAc);
     frag.appendChild(tr);
   }
   body.appendChild(frag);
@@ -860,6 +930,11 @@ function abrirDetalle(p) {
     ['Precio unitario', fmtPrecio(p.precio) + (META.preciosSinIVA ? ' (sin IVA)' : '')],
     ['Precio con descuento', p.precioFinal !== undefined && p.precioFinal !== p.precio ? fmtPrecio(p.precioFinal) + '  (-' + p.descuento + '%)' : ''],
     ['Precio total combo', p.precioTotal !== undefined ? fmtPrecio(p.precioTotal) : ''],
+    ['Categoría de margen', (p.margen || {}).categoria],
+    ['Margen mínimo', p.margen && p.margen.min != null ? p.margen.min + '%' : ''],
+    ['Margen máximo', p.margen && p.margen.max != null ? p.margen.max + '%' : ''],
+    ['Precio de venta', precioVenta(p) != null ? fmtPrecio(precioVenta(p)) + ' (margen mínimo)' : ''],
+    ['Razón del margen', (MARGENES[(p.margen || {}).id] || {}).razon],
     ['Unidad de venta', p.unidad],
     ['Venta mínima', p.ventaMinima],
     ['Venta máxima', p.ventaMaxima],
@@ -918,6 +993,10 @@ function renderComparacion() {
     ['Referencia', p => p.referencia],
     ['Marca', p => p.marca],
     ['Precio', p => fmtPrecio(p.precio)],
+    ['Categoría de margen', p => (p.margen || {}).categoria],
+    ['Margen mínimo', p => p.margen && p.margen.min != null ? p.margen.min + '%' : ''],
+    ['Margen máximo', p => p.margen && p.margen.max != null ? p.margen.max + '%' : ''],
+    ['Precio de venta', p => { const v = precioVenta(p); return v == null ? '' : fmtPrecio(v); }],
     ['Unidad', p => p.unidad],
     ['Existencias', p => p.existencia === undefined ? '' : fmtNum(p.existencia)],
     ['Empaque', p => p.empaque],
@@ -945,6 +1024,10 @@ function renderComparacion() {
 const COLUMNAS = [
   ['Código', p => p.codigo], ['Nombre', p => p.nombre], ['Proveedor', p => (provById[p.proveedor] || {}).nombre],
   ['Catálogo', p => (catById[p.catalogo] || {}).nombre], ['Marca', p => p.marca], ['Precio', p => p.precio],
+  ['Categoría de margen', p => (p.margen || {}).categoria],
+  ['Margen mínimo %', p => (p.margen || {}).min],
+  ['Margen máximo %', p => (p.margen || {}).max],
+  ['Precio de venta', p => precioVenta(p)],
   ['Unidad', p => p.unidad], ['Existencia', p => p.existencia], ['Rubro', p => p.rubro],
   ['Categoría', p => p.categoria], ['Subcategoría', p => p.subcategoria], ['Referencia', p => p.referencia],
   ['Empaque', p => p.empaque], ['Bulto', p => p.bulto], ['Medida', p => p.medida],
@@ -1035,6 +1118,7 @@ function guardarURL() {
   if (state.catalogos.size) p.set('cat', Array.from(state.catalogos).join(','));
   if (state.marcas.size) p.set('mar', Array.from(state.marcas).join(','));
   if (state.rubros.size) p.set('rub', Array.from(state.rubros).join(','));
+  if (state.margenes.size) p.set('mg', Array.from(state.margenes).join(','));
   if (state.unidades.size) p.set('uni', Array.from(state.unidades).join(','));
   if (state.pMin !== null) p.set('pmin', state.pMin);
   if (state.pMax !== null) p.set('pmax', state.pMax);
@@ -1058,6 +1142,7 @@ function leerURL() {
   (p.get('cat') || '').split(',').filter(Boolean).forEach(v => state.catalogos.add(v));
   (p.get('mar') || '').split(',').filter(Boolean).forEach(v => state.marcas.add(v));
   (p.get('rub') || '').split(',').filter(Boolean).forEach(v => state.rubros.add(v));
+  (p.get('mg') || '').split(',').filter(Boolean).forEach(v => state.margenes.add(v));
   (p.get('uni') || '').split(',').filter(Boolean).forEach(v => state.unidades.add(v));
   if (p.get('pmin')) state.pMin = parseFloat(p.get('pmin'));
   if (p.get('pmax')) state.pMax = parseFloat(p.get('pmax'));
@@ -1074,7 +1159,7 @@ function leerURL() {
 function limpiarTodo() {
   state.q = ''; state.tokens = [];
   state.proveedores.clear(); state.catalogos.clear(); state.marcas.clear();
-  state.rubros.clear(); state.unidades.clear();
+  state.rubros.clear(); state.unidades.clear(); state.margenes.clear();
   state.pMin = null; state.pMax = null; state.soloPrecio = false; state.soloStock = false;
   state.page = 1;
   $('#q').value = ''; $('#btnClearQ').hidden = true;
