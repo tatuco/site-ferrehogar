@@ -25,7 +25,7 @@ const INDICE = path.join(ROOT, "build", "imagenes-r2.json");
 const CATEGORIZADO = path.join(ROOT, "build", "catalogo.categorizado.json");
 const INTERNO = path.join(ROOT, "build", "catalogo-ferrehogar-interno.js");
 const INVENTARIO = path.join(ROOT, "build", "inventario.csv");
-const COTIZADOR = path.join(ROOT, "build", "cotizador.json");
+const COTIZADOR = path.join(ROOT, "build", "cotizador", "cotizador.json");
 const EXTENSIONES = ["jpg", "jpeg", "png", "webp", "gif"];
 const MIME = {
   jpg: "image/jpeg",
@@ -469,7 +469,7 @@ function generarSalidas(db, indice) {
   console.log("build/catalogo.categorizado.json");
   console.log("build/catalogo-ferrehogar-interno.js");
   console.log("build/inventario.csv");
-  console.log("build/cotizador.json");
+  console.log("build/cotizador/cotizador.json");
 }
 
 function ayuda() {

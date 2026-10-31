@@ -848,9 +848,26 @@ function falloCarga(msg) {
   vacio.hidden = false;
   vacio.replaceChildren();
   vacio.append(el("p", "", msg));
-  const ayuda = el("p", "", "Sirva la carpeta build con un servidor local y abra /cotizador/. Por ejemplo: python3 -m http.server");
+  const ayuda = el("p", "", "El archivo cotizador.json tiene que publicarse en la misma carpeta que esta página.");
   ayuda.style.marginTop = ".45rem";
   vacio.append(ayuda);
+}
+
+async function cargarCatalogo() {
+  const urls = [...new Set([
+    new URL("cotizador.json", location.href).href,
+    new URL("../cotizador.json", location.href).href
+  ])];
+  for (const href of urls) {
+    let res;
+    try { res = await fetch(href); }
+    catch (e) { continue; }
+    if (!res.ok) continue;
+    const tipo = (res.headers.get("content-type") || "").toLowerCase();
+    if (tipo.includes("text/html")) continue;
+    return res.json();
+  }
+  throw new Error("sin catalogo");
 }
 
 async function iniciar() {
@@ -928,9 +945,7 @@ async function iniciar() {
   });
 
   try {
-    const res = await fetch(new URL("../cotizador.json", location.href));
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
+    const data = await cargarCatalogo();
     meta = data.meta || meta;
     try {
       money = new Intl.NumberFormat("es-MX", { style: "currency", currency: meta.moneda || "MXN", minimumFractionDigits: 2 });
