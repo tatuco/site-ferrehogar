@@ -7,15 +7,16 @@
 <title>Catálogo General de Proveedores</title>
 <style>
 :root{
-  --bg:#f1f5f9; --panel:#ffffff; --panel2:#f8fafc; --line:#e2e8f0; --line2:#cbd5e0;
-  --txt:#1e293b; --txt2:#64748b; --txt3:#94a3b8; --brand:#1d4ed8; --brand2:#3b82f6;
-  --brand-soft:#eff6ff; --ok:#15803d; --warn:#b45309; --danger:#b91c1c;
-  --radius:10px; --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.05);
+  --crema:#F2EDE2; --marron:#352217; --rojo:#9E1217; --marino:#0D2359;
+  --bg:var(--crema); --panel:#FFFCF7; --panel2:#E8E1D3; --line:#D5CBBC; --line2:#B7A894;
+  --txt:var(--marron); --txt2:#6B5344; --txt3:#8A7262; --brand:var(--marino); --brand2:#1A3D82;
+  --brand-soft:#E4E8F2; --accent:var(--rojo); --ok:var(--marino); --warn:#8A5A12; --danger:var(--rojo);
+  --radius:10px; --shadow:0 1px 3px rgba(53,34,23,.06),0 4px 16px rgba(53,34,23,.06);
 }
 [data-theme="oscuro"]{
-  --bg:#0f172a; --panel:#1e293b; --panel2:#172033; --line:#334155; --line2:#475569;
-  --txt:#e2e8f0; --txt2:#94a3b8; --txt3:#64748b; --brand:#60a5fa; --brand2:#93c5fd;
-  --brand-soft:#1e3a5f; --ok:#4ade80; --warn:#fbbf24; --danger:#f87171;
+  --bg:#1A120E; --panel:#261C16; --panel2:#32261E; --line:#4E3C30; --line2:#64503F;
+  --txt:#F2EDE2; --txt2:#CDBBA8; --txt3:#A89280; --brand:#C5D0EA; --brand2:#DEE5F5;
+  --brand-soft:#1A2744; --accent:#E07074; --ok:#C5D0EA; --warn:#E0B15A; --danger:#E07074;
   --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -30,18 +31,17 @@ a{color:var(--brand)}
 /* ---------------------------------------------------------- barra superior */
 .topbar{
   display:flex;align-items:center;gap:1rem;padding:.7rem 1.2rem;flex-wrap:wrap;
-  background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18);z-index:20;
+  background:var(--bg);color:var(--txt);z-index:20;
 }
-[data-theme="oscuro"] .topbar{background:linear-gradient(135deg,#0b2545,#1e3a5f)}
 .brand h1{font-size:1.05rem;font-weight:650;letter-spacing:.2px}
 .brand .meta{font-size:.76rem;opacity:.82;display:block;margin-top:1px}
 .topbar-actions{margin-left:auto;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
 .tbtn{
-  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;
+  background:var(--panel);border:1px solid var(--line2);color:var(--txt);
   padding:.42rem .8rem;border-radius:8px;cursor:pointer;white-space:nowrap;transition:.15s;
 }
-.tbtn:hover{background:rgba(255,255,255,.26)}
-.tbtn.on{background:#fff;color:#1e3a8a;font-weight:600}
+.tbtn:hover{background:var(--panel2)}
+.tbtn.on{background:var(--marron);color:var(--crema);font-weight:600}
 
 /* --------------------------------------------------------------- toolbar */
 .toolbar{
@@ -69,8 +69,10 @@ select:focus,input[type=number]:focus{border-color:var(--brand)}
   cursor:pointer;white-space:nowrap;transition:.15s;font-weight:500;
 }
 .btn:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-soft)}
-.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
-.btn.primary:hover{filter:brightness(1.08);color:#fff}
+.btn.primary{background:var(--bg);border-color:var(--line);color:var(--txt)}
+.btn.primary:hover{filter:none;background:var(--panel2);border-color:var(--line2);color:var(--txt)}
+#btnCSV{background:var(--bg);border-color:var(--line);color:var(--txt)}
+#btnCSV:hover{background:var(--panel2);border-color:var(--line2);color:var(--txt)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .spacer{flex:1}
 
@@ -118,7 +120,7 @@ select:focus,input[type=number]:focus{border-color:var(--brand)}
 td.mg{font-size:.78rem;line-height:1.3;max-width:210px}
 td.mg .pct{font-weight:650;white-space:nowrap}
 td.mg .cat{color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
-td.mg .venta{color:var(--ok);font-size:.72rem;white-space:nowrap}
+td.mg .venta{color:var(--accent);font-size:.72rem;white-space:nowrap}
 
 /* rango de precio */
 .range{display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem}
@@ -165,7 +167,7 @@ dialog{
   border:none;border-radius:14px;padding:0;box-shadow:0 20px 60px rgba(0,0,0,.3);
   background:var(--panel);color:var(--txt);max-width:min(940px,94vw);width:100%;
 }
-dialog::backdrop{background:rgba(15,23,42,.6)}
+dialog::backdrop{background:rgba(53,34,23,.62)}
 .dlg-head{
   display:flex;align-items:flex-start;gap:1rem;padding:1rem 1.2rem;border-bottom:1px solid var(--line);
   position:sticky;top:0;background:var(--panel);border-radius:14px 14px 0 0;z-index:2;
@@ -199,7 +201,7 @@ dialog::backdrop{background:rgba(15,23,42,.6)}
   thead th:nth-child(4),tbody td:nth-child(4){display:none}
   td.br, thead th.mg, td.mg{display:none}
 }
-.scrim{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:55;display:none}
+.scrim{position:fixed;inset:0;background:rgba(53,34,23,.5);z-index:55;display:none}
 .scrim.on{display:block}
 .toast{
   position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%) translateY(20px);
@@ -814,7 +816,7 @@ function renderTabla() {
     const tdNm = el('td', 'nm');
     if (p.imagen) {
       const img = el('img'); img.src = p.imagen; img.alt = p.nombre || ''; img.loading = 'lazy';
-      img.style.cssText = 'width:48px;height:48px;object-fit:contain;border:1px solid var(--line);border-radius:6px;background:#fff;margin-right:.5rem;vertical-align:middle';
+      img.style.cssText = 'width:48px;height:48px;object-fit:contain;border:1px solid var(--line);border-radius:6px;background:var(--crema);margin-right:.5rem;vertical-align:middle';
       tdNm.appendChild(img);
     }
     const wrap = el('div'); wrap.style.display = 'inline-block'; wrap.style.verticalAlign = 'middle';
@@ -916,7 +918,7 @@ function abrirDetalle(p) {
   const dim = $('#detImg'); dim.innerHTML = '';
   if (p.imagen) {
     const img = el('img'); img.src = p.imagen; img.alt = p.nombre || '';
-    img.style.cssText = 'max-width:260px;max-height:260px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff';
+    img.style.cssText = 'max-width:260px;max-height:260px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:var(--crema)';
     dim.appendChild(img);
   }
   const cat = catById[p.catalogo] || {};
