@@ -413,7 +413,7 @@ export function clasificar(producto) {
   return decidir("otros", "ninguno", "baja");
 }
 
-function margenDe(resultado) {
+export function margenDe(resultado) {
   const definicion = CATEGORIAS[resultado.id];
   return {
     id: resultado.id,
@@ -525,7 +525,7 @@ function auditar(productos) {
   return fallos;
 }
 
-function escribir(catalogo) {
+export function asignarMargenes(catalogo) {
   const conteo = {};
   const confianza = {};
   for (const producto of catalogo.productos) {
@@ -549,12 +549,17 @@ function escribir(catalogo) {
     })),
     confianza,
   };
+  return catalogo;
+}
+
+function escribir(catalogo) {
+  asignarMargenes(catalogo);
 
   fs.writeFileSync(SALIDA, JSON.stringify(catalogo));
   console.log(`Escrito ${SALIDA}`);
   console.log(`Productos ${catalogo.productos.length}`);
-  for (const [id, total] of Object.entries(conteo)) {
-    console.log(`${total}\t${CATEGORIAS[id].nombre}`);
+  for (const categoria of catalogo.margenes.categorias) {
+    console.log(`${categoria.productos}\t${categoria.nombre}`);
   }
 }
 

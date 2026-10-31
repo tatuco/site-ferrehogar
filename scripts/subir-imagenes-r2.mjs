@@ -365,7 +365,7 @@ async function uploadOne(cfg, item) {
     method: "PUT",
     key: item.key,
     body,
-    contentType: "image/jpeg",
+    contentType: item.contentType || "image/jpeg",
   });
   await put.arrayBuffer().catch(() => {});
   return "subida";
@@ -439,7 +439,14 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+const esEntradaDirecta =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (esEntradaDirecta) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}
+
+export { loadEnv, joinUrl, uploadOne };

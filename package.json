@@ -10,6 +10,8 @@
     "subir-imagenes": "node scripts/subir-imagenes-r2.mjs",
     "subir-imagenes:dry": "node scripts/subir-imagenes-r2.mjs --dry-run",
     "descargar-imagenes": "node scripts/descargar-imagenes-faltantes.mjs",
-    "asignar-imagenes-manuales": "node scripts/asignar-imagenes-manuales.mjs"
+    "asignar-imagenes-manuales": "node scripts/asignar-imagenes-manuales.mjs",
+    "sembrar": "node scripts/sembrar-database.mjs",
+    "actualizar": "node scripts/actualizar.mjs"
   }
 }

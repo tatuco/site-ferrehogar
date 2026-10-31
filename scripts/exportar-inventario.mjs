@@ -20,6 +20,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { costoDe as costoUnitario, precioVentaDe } from "./lib/precio.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CATALOGO = path.join(ROOT, "build", "catalogo.categorizado.json");
@@ -45,21 +46,11 @@ function columnasDe(catalogo) {
 }
 
 function costoDe(producto) {
-  const final = Number(producto.precioFinal);
-  if (Number.isFinite(final) && producto.precioFinal !== "" && producto.precioFinal != null) {
-    return { costo: final, origen: "precioFinal" };
-  }
-  const lista = Number(producto.precio);
-  if (Number.isFinite(lista) && producto.precio !== "" && producto.precio != null) {
-    return { costo: lista, origen: "precio" };
-  }
-  return { costo: null, origen: "ninguno" };
-}
-
-function precioVentaDe(costo, margenMin) {
-  const costoCentavos = Math.round(costo * 100);
-  const ventaCentavos = Math.round((costoCentavos * (100 + margenMin)) / 100);
-  return (ventaCentavos / 100).toFixed(2);
+  const costo = costoUnitario(producto);
+  if (costo == null) return { costo: null, origen: "ninguno" };
+  const usaFinal =
+    producto.precioFinal !== "" && producto.precioFinal != null && Number.isFinite(Number(producto.precioFinal));
+  return { costo, origen: usaFinal ? "precioFinal" : "precio" };
 }
 
 function filaDe(producto, columnas) {
@@ -67,7 +58,7 @@ function filaDe(producto, columnas) {
   const { costo, origen } = costoDe(producto);
   const margenMin = Number.isFinite(margen.min) ? margen.min : null;
   const precioVenta =
-    costo != null && margenMin != null ? precioVentaDe(costo, margenMin) : "";
+    costo != null && margenMin != null ? precioVentaDe(costo, margenMin).toFixed(2) : "";
 
   const valores = {
     ...producto,
@@ -84,19 +75,16 @@ function filaDe(producto, columnas) {
   };
 }
 
-function main() {
-  const catalogo = JSON.parse(fs.readFileSync(CATALOGO, "utf8"));
+export function textoInventario(catalogo) {
   const productos = catalogo?.productos;
   if (!Array.isArray(productos)) {
-    throw new Error("build/catalogo.categorizado.json no tiene un arreglo productos.");
+    throw new Error("El catálogo no tiene un arreglo productos.");
   }
-
   const columnas = columnasDe(catalogo);
   const conteo = {};
   const origenCosto = { precio: 0, precioFinal: 0, ninguno: 0 };
   let conVenta = 0;
   const lineas = ["sep=;", columnas.join(";")];
-
   for (const producto of productos) {
     const fila = filaDe(producto, columnas);
     lineas.push(fila.linea);
@@ -104,16 +92,36 @@ function main() {
     origenCosto[fila.origen] += 1;
     if (fila.conVenta) conVenta += 1;
   }
-
-  fs.writeFileSync(SALIDA, `\uFEFF${lineas.join("\r\n")}\r\n`);
-  console.log(`Inventario: ${path.relative(ROOT, SALIDA)}`);
-  console.log(`Productos: ${productos.length}`);
-  console.log(`Con precio de venta: ${conVenta}`);
-  console.log(`Costo desde precio: ${origenCosto.precio}`);
-  console.log(`Costo desde precioFinal: ${origenCosto.precioFinal}`);
-  console.log(`Sin costo: ${origenCosto.ninguno}`);
-  console.log(`Columnas: ${columnas.join(", ")}`);
-  for (const [id, total] of Object.entries(conteo)) console.log(`${total}\t${id}`);
+  return {
+    texto: `\uFEFF${lineas.join("\r\n")}\r\n`,
+    columnas,
+    conteo,
+    origenCosto,
+    conVenta,
+    total: productos.length,
+  };
 }
 
-main();
+function main() {
+  const catalogo = JSON.parse(fs.readFileSync(CATALOGO, "utf8"));
+  const productos = catalogo?.productos;
+  if (!Array.isArray(productos)) {
+    throw new Error("build/catalogo.categorizado.json no tiene un arreglo productos.");
+  }
+
+  const informe = textoInventario(catalogo);
+  fs.writeFileSync(SALIDA, informe.texto);
+  console.log(`Inventario: ${path.relative(ROOT, SALIDA)}`);
+  console.log(`Productos: ${informe.total}`);
+  console.log(`Con precio de venta: ${informe.conVenta}`);
+  console.log(`Costo desde precio: ${informe.origenCosto.precio}`);
+  console.log(`Costo desde precioFinal: ${informe.origenCosto.precioFinal}`);
+  console.log(`Sin costo: ${informe.origenCosto.ninguno}`);
+  console.log(`Columnas: ${informe.columnas.join(", ")}`);
+  for (const [id, total] of Object.entries(informe.conteo)) console.log(`${total}\t${id}`);
+}
+
+const esEntradaDirecta =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (esEntradaDirecta) main();
